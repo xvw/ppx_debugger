@@ -77,7 +77,6 @@ struct
           ) in
     Str.eval e
 
-  let log l str = printf (str_constant "<%s:%d> %s \n") l str
   let logf l format preapplied =
     let f = create_loc (Ldot (Lident "Printf", "sprintf")) in
     let e =
@@ -124,23 +123,15 @@ let create_log location = function
   | PStr [str] ->
     begin
       match str.pstr_desc with
-      | Pstr_eval (expr, _) -> Helper.log location expr
+      | Pstr_eval (expr, _) ->
+        begin match expr.pexp_desc with
+          | Pexp_constant _ -> Helper.logf location expr []
+          | Pexp_tuple (format :: arg) -> Helper.logf location format arg
+          | _ -> fail "[@@@log ...] is malformed"
+        end
       | _ -> fail "[@@@log ...] is malformed"
     end
   | _ -> fail "[@@@log ...] is malformed"
-  
-let create_logf location = function
-  | PStr [str] ->
-    begin
-      match str.pstr_desc with
-      | Pstr_eval (expr, _) ->
-        begin match expr.pexp_desc with
-          | Pexp_tuple (format :: arg) -> Helper.logf location format arg
-          | _ -> fail "[@@@logf ...] is malformed"
-        end
-      | _ -> fail "[@@@logf ...] is malformed"
-    end
-  | _ -> fail "[@@@logf ...] is malformed"
   
 
 
@@ -151,7 +142,6 @@ let attr_replace s =
     begin
       match data.txt with
       | "log" -> create_log data.loc payload
-      | "logf" -> create_logf data.loc payload
       | "breakpoint" -> create_breakpoint data.loc
       | _ -> s
     end

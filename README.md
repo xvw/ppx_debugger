@@ -18,13 +18,12 @@ todo
 Using the ppx-extension, this code, at the execution, will be display on
 stdout : ` <file.ml:line> This is a log `.
 
-### Formatted log
-
+The log could be formatted :
 
 ```ocaml
 (* ... some OCaml code *)
 let a = 1 and b = "log"
-[@@@logf "This is %d %s", a, b]
+[@@@log "This is %d %s", a, b]
 ```
 Using the ppx-extension, this code, at the execution, will be display on
 stdout : ` <file.ml:line> This is 1 log `.
