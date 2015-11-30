@@ -32,7 +32,7 @@ stdout : ` <file.ml:line> This is 1 log `.
 ### Breakpoint
 ```ocaml
 (* ... some OCaml code *)
-[@@@breakpoint"]
+[@@@breakpoint]
 ```
 Wait for [ENTER] press to process the nextstep
 
