@@ -39,7 +39,30 @@ struct
   let create_ident ?(loc = !default_loc) v = create_loc ~loc (Lident v)
   let str_constant value = Exp.constant (Const_string (value, None))
   let int_constant value = Exp.constant (Const_int value)
+  let pattern_var s = Pat.var (create_loc s)
+  let pattern_any = Pat.any ()
+  let exp_ident x = Exp.ident (create_ident x)
+  
+  let variable ?(recf=Nonrecursive) binding =
+    Str.value
+      recf
+      (List.map
+         (fun (name, expr) -> Vb.mk name expr) binding
+      )
 
+   let e_printf const location =
+    let f = create_loc (Ldot (Lident "Printf", "sprintf")) in
+    let file =  str_constant location.loc_start.pos_fname in
+    let line = int_constant location.loc_start.pos_lnum in 
+    let sprintf =
+      Exp.(apply
+             (ident f)
+             [ "", const;
+               "", file;
+               "", line]
+          )
+    in Exp.(apply (ident (create_ident "print_endline")) ["", sprintf])
+        
   let printf const location str =
     let f = create_loc (Ldot (Lident "Printf", "printf")) in
     let file =  str_constant location.loc_start.pos_fname in
@@ -63,10 +86,40 @@ struct
              (("", format) :: (List.map (fun x -> "", x) preapplied))
           )
     in printf (str_constant "<%s:%d> %s \n") l e
+
+  let identity =
+    Exp.fun_
+      ""
+      None
+      (pattern_var "x")
+      (Exp.ident (create_ident "x"))
+
+  let wait_for_key =
+    let f = create_loc (Ldot (Lident "Scanf", "scanf")) in
+    Exp.(apply
+           (ident f)
+           [
+             "", str_constant "%s\n";
+             "", identity
+           ]
+        )
       
 end
 
-(* create log *)
+
+let create_breakpoint location =
+  Helper.( variable [
+      pattern_any,
+      Exp.let_
+        Nonrecursive 
+        [Vb.mk pattern_any (
+            e_printf (str_constant "<%s:%d> Breakpoint (press ENTER)") location
+          )]
+        wait_for_key
+      ;
+    ] )
+  
+
 let create_log location = function
   | PStr [str] ->
     begin
@@ -99,6 +152,7 @@ let attr_replace s =
       match data.txt with
       | "log" -> create_log data.loc payload
       | "logf" -> create_logf data.loc payload
+      | "breakpoint" -> create_breakpoint data.loc
       | _ -> s
     end
   | _ -> s

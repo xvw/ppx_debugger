@@ -28,3 +28,11 @@ let a = 1 and b = "log"
 ```
 Using the ppx-extension, this code, at the execution, will be display on
 stdout : ` <file.ml:line> This is 1 log `.
+
+### Breakpoint
+```ocaml
+(* ... some OCaml code *)
+[@@@breakpoint"]
+```
+Wait for [ENTER] press to process the nextstep
+
