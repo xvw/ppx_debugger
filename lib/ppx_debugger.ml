@@ -67,15 +67,13 @@ struct
     let f = create_loc (Ldot (Lident "Printf", "printf")) in
     let file =  str_constant location.loc_start.pos_fname in
     let line = int_constant location.loc_start.pos_lnum in 
-    let e =
-      Exp.(apply
-             (ident f)
-             [ "", const;
-               "", file;
-               "", line;
-               "", str ]
-          ) in
-    Str.eval e
+    Exp.(apply
+           (ident f)
+           [ "", const;
+             "", file;
+             "", line;
+             "", str ]
+        )
 
   let logf l format preapplied =
     let f = create_loc (Ldot (Lident "Printf", "sprintf")) in
@@ -105,6 +103,11 @@ struct
       
 end
 
+let keywords = [
+  "log"
+; "breakpoint"
+]
+
 
 let create_breakpoint location =
   Helper.( variable [
@@ -125,15 +128,16 @@ let create_log location = function
       match str.pstr_desc with
       | Pstr_eval (expr, _) ->
         begin match expr.pexp_desc with
-          | Pexp_constant _ -> Helper.logf location expr []
-          | Pexp_tuple (format :: arg) -> Helper.logf location format arg
+          | Pexp_constant _ ->
+            Str.eval (Helper.logf location expr [])
+          | Pexp_tuple (format :: arg) ->
+            Str.eval(Helper.logf location format arg)
           | _ -> fail "[@@@log ...] is malformed"
         end
       | _ -> fail "[@@@log ...] is malformed"
     end
   | _ -> fail "[@@@log ...] is malformed"
   
-
 
 (* Replace all debugger attributes *)
 let attr_replace s = 
