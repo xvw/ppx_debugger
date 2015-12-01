@@ -35,3 +35,21 @@ stdout : ` <file.ml:line> This is 1 log `.
 ```
 Wait for [ENTER] press to process the nextstep
 
+### Attach attributes to for and while
+You can attach a debugger attribute on a node.
+
+```ocaml
+for i = 0 to 10 do
+  print_endline "I'm in a loop"
+done
+[@@log "The value of i is : %d", i]
+```
+
+And attributes could be chained
+
+```ocaml
+while true do
+  print_endline "I'm in a while"
+done
+[@@log "Some log"][@@breakpoint]  
+```

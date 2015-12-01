@@ -27,6 +27,8 @@ open Location
 open Lexing
 
 
+let id x = x
+
 let fail ?(loc = !default_loc) message =  
   let open Location in 
   raise (Error (error ~loc message))
@@ -103,50 +105,79 @@ struct
       
 end
 
-let keywords = [
-  "log"
-; "breakpoint"
-]
-
-
-let create_breakpoint location =
-  Helper.( variable [
-      pattern_any,
-      Exp.let_
-        Nonrecursive 
-        [Vb.mk pattern_any (
-            e_printf (str_constant "<%s:%d> Breakpoint (press ENTER)") location
-          )]
-        wait_for_key
-      ;
-    ] )
+let create_breakpoint f location =
+  let open Helper in
+  let e = Exp.let_
+    Nonrecursive 
+    [Vb.mk pattern_any (
+        e_printf (str_constant "<%s:%d> Breakpoint (press ENTER)") location
+      )]
+    wait_for_key
+  in f e
   
 
-let create_log location = function
+let create_log f location = function
   | PStr [str] ->
     begin
       match str.pstr_desc with
       | Pstr_eval (expr, _) ->
         begin match expr.pexp_desc with
           | Pexp_constant _ ->
-            Str.eval (Helper.logf location expr [])
+            f (Helper.logf location expr [])
           | Pexp_tuple (format :: arg) ->
-            Str.eval(Helper.logf location format arg)
-          | _ -> fail "[@@@log ...] is malformed"
+            f (Helper.logf location format arg)
+          | _ -> fail "[log ...] is malformed"
         end
-      | _ -> fail "[@@@log ...] is malformed"
+      | _ -> fail "[log ...] is malformed"
     end
-  | _ -> fail "[@@@log ...] is malformed"
-  
+  | _ -> fail "[log ...] is malformed"
 
-(* Replace all debugger attributes *)
+
+let merge_expression = Exp.sequence
+
+let treat_attributes e2 attr =
+  let rec aux acc e = function
+    | [] -> acc, e
+    | ({txt = "log"; loc = loc}, payload) :: xs ->
+      aux acc (merge_expression e (create_log id loc payload)) xs
+    | ({txt = "breakpoint"; loc = loc}, payload) :: xs ->
+      aux acc (merge_expression e (create_breakpoint id loc)) xs
+    | x :: xs -> aux (x :: acc) e xs 
+  in aux [] e2 attr
+
 let attr_replace s = 
   match s.pstr_desc with
   | Pstr_attribute (data, payload) ->
     begin
       match data.txt with
-      | "log" -> create_log data.loc payload
-      | "breakpoint" -> create_breakpoint data.loc
+      | "log" -> create_log Str.eval data.loc payload
+      | "breakpoint" -> create_breakpoint Str.eval data.loc
+      | _ -> s
+    end
+  | Pstr_eval (expr, attr) -> begin
+      match expr.pexp_desc with
+      | Pexp_while (e1, e2) ->
+        let new_attr, new_expr = treat_attributes e2 attr in
+        {
+          s with
+          pstr_desc =
+            Pstr_eval (
+              {expr with pexp_desc = Pexp_while (e1, new_expr)},
+              new_attr
+            )
+        }
+      | Pexp_for (p, e1, e2, flag, e3) ->
+        let new_attr, new_expr = treat_attributes e3 attr in
+        {
+          s with
+          pstr_desc =
+            Pstr_eval (
+              {expr with
+               pexp_desc =
+                 Pexp_for (p, e1, e2, flag, new_expr)},
+              new_attr
+            )
+        }
       | _ -> s
     end
   | _ -> s

@@ -5,6 +5,13 @@ ifeq ($(DSOURCE), yes)
 endif
 
 
+all: sample1
+	./sample1.byte
+	rm -rf *.byte
+	rm -rf *.cm*
+	rm -rf *~
+
+
 sample1:
 	$(OCAMLC) $(SOURCE) sample1.ml -o sample1.byte
 
