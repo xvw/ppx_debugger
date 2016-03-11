@@ -48,6 +48,20 @@ struct
         in result
     in aux 0 []
 
+  let array_reduce f array =
+    let len = Array.length array in
+    if len = 0 then
+      raise (Failure "Empty Array")
+    else
+      let acc = ref array.(0) in
+      let _ =
+        for i = 1 to len -1 do
+          acc := f !acc array.(i)
+        done in !acc
+
+  let array_join sep =
+    array_reduce (fun a b -> a ^ sep ^ b)
+
 
   let c_loc ?(loc = !default_loc) value = {
     txt = value
@@ -72,7 +86,12 @@ struct
     )
 
   let open_location location =
-    let (file, line, bol, c) = file_data location in
-    
+    let (file, line, bol, c) = file_data location in {
+      filename    = file
+    ; filecontent = open_file file
+    ; linenum     = line
+    ; cnum        = c
+    ; bol         = bol
+    }
 
 end
