@@ -1,23 +1,24 @@
 Name: ppx_debugger
-Version: 0.1
-Synopsis: A small tool to debug OCaml code
+Version: 1.0
+Synopsis: An interactive debugger for OCaml
 Authors: Xavier Van de Woestyne <xaviervdw@gmail.com>
-License: MIT with OCaml linking exception
-
+License: GPL3
 Description: A small preprocessor for OCaml debugging
-Homepage: https://github.com/xvw/ppx_debug
-
+Homepage: https://github.com/xvw/ppx_debugger
 OASISFormat: 0.4
-OCamlVersion: >= 4.02.1
 BuildTools: ocamlbuild
-Plugins: META (0.4), DevFiles (0.4)
+Plugins: META (0.3), DevFiles (0.3)
+FilesAB: lib/META.ab
+OCamlVersion: >= 4.02
 
-PreInstallCommand:   $ocamlfind install ppx_debugger lib/META
-PreUninstallCommand: $ocamlfind remove ppx_debugger
+Library ppx_debugger
+  Path:                 lib
+  FindlibName:          ppx_debugger
+  Modules:              Ppx_debugger
+  Install:              true
 
 Executable ppx_debugger
   Path:           lib
   BuildDepends:   compiler-libs.common
   MainIs:         ppx_debugger.ml
   CompiledObject: best
-
