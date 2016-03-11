@@ -1,11 +1,1 @@
-# OASIS_START
-# DO NOT EDIT (digest: 84bfd43eff4cddceace291c70ae2ac2a)
-version = "1.0"
-description = "An interactive debugger for OCaml"
-archive(byte) = "ppx_debugger.cma"
-archive(byte, plugin) = "ppx_debugger.cma"
-archive(native) = "ppx_debugger.cmxa"
-archive(native, plugin) = "ppx_debugger.cmxs"
-exists_if = "ppx_debugger.cma"
-# OASIS_STOP
-
+ppx = "ppx_debugger"
