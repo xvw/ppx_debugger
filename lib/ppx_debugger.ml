@@ -55,6 +55,8 @@ struct
   let ident ?(loc = !default_loc) value =
     c_loc ~loc (Longident.Lident value)
 
+  let x_ident x = Exp.ident (ident x)
+
   let raise_error ?(loc = !default_loc) message =
     let open Location in
     raise (Error (error ~loc message))
@@ -116,20 +118,19 @@ struct
   let array_join sep =
     array_reduce (fun a b -> a ^ sep ^ b)
 
-  let fragment_file border_top border_bottom line file =
+  let fragment_file border_top line file =
     let ctn = file.content in
     let bmin, bmax = 0, (Array.length ctn) - 1 in
     let i = max (line - border_top) bmin in
-    let j = min (line + border_bottom) bmax in
-    (i, Array.sub ctn i j)
+    let _ = printf "%d-%d-%d\n" line i (line-i) in
+    (i, Array.sub ctn i (line-i))
 
   let formating_fragment location str =
     let fname, li, _, _ = file_data location in
     "\n\n"
-    ^ sprintf "%sBREAKPOINT [%s:%d]%s\n" (Color.blue ~bg:true ()) fname li Color.reset
+    ^ sprintf "%s BREAKPOINT [%s:%d] %s\n" (Color.blue ~bg:true ()) fname li Color.reset
     ^ Color.green ()
     ^ str
-    ^ "\n\n"
     ^ Color.reset
 
   let format_fragment location l arr =
@@ -150,11 +151,65 @@ struct
     |> string_constant
 
 
-  let print_fragment location btop bbottom line file =
-    let i, s = fragment_file btop bbottom line file in
+  let identity =
+    let open Exp in
+    fun_ ""
+      None (Pat.var (loc "x"))
+      (x_ident "x")
+
+  let print_endl =
+    let open Exp in
+    apply (x_ident "print_endline") ["", string_constant ""]
+
+  let wait_input =
+    let f = func_apply "Scanf" "scanf" in
+    let open Exp in
+    let a =
+      apply f [
+        "", string_constant "%s\n"
+      ; "", identity
+      ] in
+    apply (x_ident "ignore") ["", a]
+
+  let rec sequences_of = function
+    | [] -> raise_error "Malformed sequence"
+    | [x] -> x
+    | x :: xs -> Exp.sequence x (sequences_of xs)
+
+  let print_fragment location btop line file =
+    let i, s = fragment_file btop line file in
     let str = format_fragment location i s in
     pprintf "printf" str []
 
+  let fragment_wit_input location b l file =
+    sequences_of [
+      print_fragment location b l file
+    ; print_endl
+    ; wait_input
+    ]
+
+  let format_log location s =
+    let fname, line, _, _ = file_data location in
+    sprintf "%s%s LOG [%s:%d] %s %s\n"
+      (Color.yellow ~bg:true ())
+      (Color.blue ())
+      fname line Color.reset s
+    |> string_constant
+
+  let format_log_e location = function
+    | Pexp_constant (Const_string (s, _)) -> format_log location s
+    | _ -> raise_error "Log format need to be a string"
+
+  let logf location structure_item =
+    let f = pprintf "printf" in
+    match structure_item.pstr_desc with
+    | Pstr_eval (expr, _) -> begin
+        match expr.pexp_desc with
+        | Pexp_constant (Const_string (s, _)) -> f (format_log location s) []
+        | Pexp_tuple (e :: arg) -> f (format_log_e location e.pexp_desc) arg
+        | _ -> raise_error "Malformed log"
+      end
+    | _ -> raise_error "Malformed log"
 
   let open_module filename = {
       name    = filename
@@ -163,11 +218,13 @@ struct
 
 end
 
-let perform_float_attributes mapper item = function
+ let perform_float_attributes mapper item = function
   | ({txt="breakpoint"; loc = location}, PStr []) ->
     let fname, line, bol, c = Tools.file_data location in
     let file = Tools.open_module fname in
-    Str.eval (Tools.print_fragment location 3 3 line file)
+    Str.eval (Tools.fragment_wit_input location 3 line file)
+  | ({txt="log"; loc = location}, PStr [str]) ->
+    Str.eval (Tools.logf location str)
   | _ ->  Ast_mapper.(default_mapper.structure_item mapper item)
 
 let process_item mapper item =
