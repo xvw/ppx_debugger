@@ -437,6 +437,7 @@ let process_expression mapper exp =
       Exp.ifthenelse i (mapper.expr mapper th) (e >|= mapper.expr mapper)
     | Pexp_for (p, e1, e2, dirf, e3) ->
       Exp.for_ p e1 e2 dirf (mapper.expr mapper e3)
+    | Pexp_while (e1, e2) -> Exp.while_ e1 (mapper.expr mapper e2)
     | _ -> default_mapper.expr mapper exp
 
 
