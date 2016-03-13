@@ -125,39 +125,6 @@ struct
   let array_join sep =
     array_reduce (fun a b -> a ^ sep ^ b)
 
-  let fragment_file border_top line file =
-    let ctn = file.content in
-    let bmin, bmax = 0, (Array.length ctn) - 1 in
-    let i = max (line - border_top) bmin in
-    let j = min (line + border_top) bmax in
-    let len = j - (i+1) in
-    (i, Array.sub ctn i len)
-
-  let formating_fragment location str =
-    let fname, li, _, _ = file_data location in
-    "\n"
-    ^ sprintf "%s BREAKPOINT [%s:%d] %s\n" (Color.blue ~bg:true ()) fname li Color.reset
-    ^ Color.green ()
-    ^ str
-    ^ Color.reset
-    ^ "\n"
-
-  let format_fragment location l arr =
-    Array.mapi (fun i x ->
-        let open Location in
-        let line = (l + i + 1) in
-        if line = location.loc_start.Lexing.pos_lnum then
-          sprintf
-            "%s%- 5d %s%s"
-            (Color.red ())
-            line
-            x
-            (Color.green ())
-        else sprintf "%- 5d %s" line x
-      ) arr
-    |> array_join "\n"
-    |> formating_fragment location
-    |> string_constant
 
   let let_in expr1 expr2 =
     let open Exp in
@@ -190,7 +157,7 @@ struct
   let print_str str =
     str |> string_constant |> print_exp_as_str
 
-  let wait_input =
+  let raw_wait_input =
     let f = func_apply "Scanf" "scanf" in
     let open Exp in
     let a =
@@ -200,20 +167,75 @@ struct
       ] in
     apply (x_ident "ignore") ["", a]
 
+  let wait_input =
+    let_in (print_endln "<wait-for-enter>") raw_wait_input
+
   let rec sequences_of = function
     | [] -> raise_error "Malformed sequence"
     | [x] -> x
     | x :: xs -> Exp.sequence x (sequences_of xs)
+
+
+  let fragment_file border_top line file =
+    let ctn = file.content in
+    let bmin, bmax = 0, (Array.length ctn) - 1 in
+    let i = max (line - border_top) bmin in
+    let j = min (line + border_top) bmax in
+    let len = j - (i+1) in
+    (i, Array.sub ctn i len)
+
+  let formatting_substitution location str =
+    let mess = "CHANGE VALUE FOR AVOIDING EXCEPTION" in
+    let fname, li, _, _ = file_data location in
+    "\n"
+    ^ sprintf "%s %s [%s:%d] %s\n" (Color.blue ~bg:true ()) mess fname li Color.reset
+    ^ Color.green ()
+    ^ str
+    ^ Color.reset
+    ^ "\n"
+
+  let formating_fragment location str =
+    let fname, li, _, _ = file_data location in
+    "\n"
+    ^ sprintf "%s BREAKPOINT [%s:%d] %s\n" (Color.blue ~bg:true ()) fname li Color.reset
+    ^ Color.green ()
+    ^ str
+    ^ Color.reset
+    ^ "\n"
+
+  let raw_format_fragment f location l arr =
+    Array.mapi (fun i x ->
+        let open Location in
+        let line = (l + i + 1) in
+        if line = location.loc_start.Lexing.pos_lnum then
+          sprintf
+            "%s%- 5d %s%s"
+            (Color.yellow ())
+            line
+            x
+            (Color.green ())
+        else sprintf "%- 5d %s" line x
+      ) arr
+    |> array_join "\n"
+    |> f location
+    |> string_constant
+
+  let format_fragment = raw_format_fragment formating_fragment
+
 
   let print_fragment location btop line file =
     let i, s = fragment_file btop line file in
     let str = format_fragment location i s in
     print_exp_as_str str
 
+  let print_vb_sub location btop line file =
+    let i, s = fragment_file btop line file in
+    let str = raw_format_fragment formatting_substitution location i s in
+    print_exp_as_str str
+
   let fragment_wit_input location b l file =
     sequences_of [
       print_fragment location b l file
-    ; print_endl
     ; wait_input
     ]
 
@@ -274,20 +296,26 @@ struct
   let try_catch_one exprSucc exprFail  =
     Exp.try_ exprSucc [Exp.case (Pat.var (loc "expt")) exprFail]
 
+  let exception_s name =
+    let f = func_apply "Printexc" "to_string" in
+    Exp.apply f ["", x_ident name]
+
+
   let print_backtrace location result =
     let fname, line, _, _ = file_data location in
     sequences_of [
-      print_endln
-        (sprintf "\n%s BACKTRACE [%s:%d] %s%s"
+      pprintf "printf"
+        (sprintf "\n%s %s [%s:%d] %s%s\n"
            (Color.red ~bg:true ())
+           "%s"
            fname
            line
            Color.reset
            (Color.red ())
-        )
+         |> string_constant
+        ) [exception_s "expt"]
     ; print_exp_as_str (x_ident "backtrace")
-    ; print_endln (Color.reset)
-    ; wait_input
+    ; print_str (Color.reset)
     ; result
     ]
 
@@ -315,12 +343,31 @@ let process_item mapper item =
   | Pstr_attribute attr -> perform_float_attributes mapper item attr
   | _ -> Ast_mapper.(default_mapper.structure_item mapper item)
 
+let perform_vb_sub location value =
+  let open Tools in
+  let fname, line, _, _ = file_data location in
+  let file = open_module fname in
+  match value.pstr_desc with
+  | Pstr_eval (e, _) ->
+    Tools.(
+      let_in (
+        sequences_of [
+          (print_vb_sub location 3 line file);
+          wait_input
+        ]
+      ) e)
+  | _ -> Tools.raise_error "Malformed catch"
+
+
 let perform_vb mapper vb =
   let locat = vb.pvb_loc in
   let rec aux (attr, e) = function
     | [] -> (List.rev attr, e)
     | ({txt = "catch"; loc=loc}, PStr []) :: xs ->
       aux (attr, Tools.(catch_stack locat e (exit_with 1))) xs
+    | ({txt = "catch"; loc=loc}, PStr [value]) :: xs ->
+      let sub = perform_vb_sub locat value in
+      aux (attr, Tools.(catch_stack locat e sub)) xs
     | x :: xs -> aux (x :: attr, e) xs
   in
   let (new_attr, expr) = aux ([], vb.pvb_expr) vb.pvb_attributes in

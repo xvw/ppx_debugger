@@ -10,3 +10,6 @@ example-nt:
 
 show:
 	ocamlfind ppx_tools/dumpast sample.ml
+
+clean:
+	rm -rf *.cm*
