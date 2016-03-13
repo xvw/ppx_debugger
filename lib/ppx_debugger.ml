@@ -83,6 +83,13 @@ struct
   let string_constant value =
     Exp.constant (Const_string (value, None))
 
+  let int_constant value =
+    Exp.constant (Const_int value)
+
+  let _true = Exp.construct (ident "true") None
+  let _false = Exp.construct (ident "false") None
+  let _unit = Exp.construct (ident "()") None
+
   let pprintf func format params =
     let parameters_expanded = List.map (fun x -> "", x) params in
     let open Exp in
@@ -152,6 +159,13 @@ struct
     |> formating_fragment location
     |> string_constant
 
+  let let_in expr1 expr2 =
+    let open Exp in
+    let_ Nonrecursive [Vb.mk (Pat.any ()) expr1] expr2
+
+  let let_lid_in name expr1 expr2 =
+    let open Exp in
+    let_ Nonrecursive [Vb.mk (Pat.var (loc name)) expr1] expr2
 
   let identity =
     let open Exp in
@@ -159,13 +173,22 @@ struct
       None (Pat.var (loc "x"))
       (x_ident "x")
 
-  let print_endl =
+  let active_stacktrace =
+    let c = func_apply "Printexc" "record_backtrace" in
+    Exp.apply c ["", _true]
+
+  let print_endln v =
     let open Exp in
-    apply (x_ident "print_endline") ["", string_constant ""]
+    apply (x_ident "print_endline") ["", string_constant v]
+
+  let print_endl = print_endln ""
 
   let print_exp_as_str str =
     let open Exp in
     apply (x_ident "print_string") ["", str]
+
+  let print_str str =
+    str |> string_constant |> print_exp_as_str
 
   let wait_input =
     let f = func_apply "Scanf" "scanf" in
@@ -231,7 +254,46 @@ struct
   let open_module filename = {
       name    = filename
     ; content = open_file filename
-    }
+  }
+
+  let expr_candidate attrs =
+    List.exists (function
+        | ({txt = "trace"; loc = _}, _) -> true
+        | ({txt = "catch"; loc = _}, _) -> true
+        | _ -> false
+      ) attrs
+
+  let get_backtrace =
+    Exp.apply
+      (func_apply "Printexc" "get_backtrace")
+      ["", _unit]
+
+  let exit_with id =
+    Exp.apply (x_ident "exit") ["", int_constant id]
+
+  let try_catch_one exprSucc exprFail  =
+    Exp.try_ exprSucc [Exp.case (Pat.var (loc "expt")) exprFail]
+
+  let print_backtrace location result =
+    let fname, line, _, _ = file_data location in
+    sequences_of [
+      print_endln
+        (sprintf "\n%s BACKTRACE [%s:%d] %s%s"
+           (Color.red ~bg:true ())
+           fname
+           line
+           Color.reset
+           (Color.red ())
+        )
+    ; print_exp_as_str (x_ident "backtrace")
+    ; print_endln (Color.reset)
+    ; wait_input
+    ; result
+    ]
+
+  let catch_stack locat e result =
+    let e1 = let_lid_in "backtrace" get_backtrace (print_backtrace locat result) in
+    let_in active_stacktrace (try_catch_one e e1)
 
 end
 
@@ -253,11 +315,31 @@ let process_item mapper item =
   | Pstr_attribute attr -> perform_float_attributes mapper item attr
   | _ -> Ast_mapper.(default_mapper.structure_item mapper item)
 
+let perform_vb mapper vb =
+  let locat = vb.pvb_loc in
+  let rec aux (attr, e) = function
+    | [] -> (List.rev attr, e)
+    | ({txt = "catch"; loc=loc}, PStr []) :: xs ->
+      aux (attr, Tools.(catch_stack locat e (exit_with 1))) xs
+    | x :: xs -> aux (x :: attr, e) xs
+  in
+  let (new_attr, expr) = aux ([], vb.pvb_expr) vb.pvb_attributes in
+  {
+    vb with
+    pvb_expr = expr
+  ; pvb_attributes = new_attr
+  }
+
+let process_value_binding mapper vb =
+  if Tools.expr_candidate vb.pvb_attributes then perform_vb mapper vb
+  else Ast_mapper.(default_mapper.value_binding mapper vb)
+
 
 let debug_mapper =
   Ast_mapper.{
     default_mapper with
     structure_item = process_item
+  ; value_binding = process_value_binding
   }
 
 let () =
