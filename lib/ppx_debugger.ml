@@ -194,6 +194,12 @@ struct
     ; wait_input
     ]
 
+  let fragment_with_predicat location b l file strct =
+    match strct.pstr_desc with
+    | Pstr_eval (predicate, _) ->
+      Exp.ifthenelse predicate (fragment_wit_input location b l file) None
+    | _ -> raise_error "Malformed breakpoint"
+
   let format_log location s =
     let fname, line, _, _ = file_data location in
     sprintf "%s%s LOG [%s:%d] %s %s"
@@ -234,6 +240,10 @@ end
     let fname, line, bol, c = Tools.file_data location in
     let file = Tools.open_module fname in
     Str.eval (Tools.fragment_wit_input location 3 line file)
+  | ({txt="breakpoint"; loc = location}, PStr [expr]) ->
+    let fname, line, bol, c = Tools.file_data location in
+    let file = Tools.open_module fname in
+    Str.eval (Tools.fragment_with_predicat location 3 line file expr)
   | ({txt="log"; loc = location}, PStr [str]) ->
     Str.eval (Tools.logf location str)
   | _ ->  Ast_mapper.(default_mapper.structure_item mapper item)
