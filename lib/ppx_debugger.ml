@@ -29,7 +29,7 @@ struct
 
   let mk ?(bg=false) =
     let f = if bg then 4 else 3 in
-    sprintf "\027[%d%dm" f
+    sprintf "\x1b[%d%dm" f
 
   let reset                   = "\027[0m"
   let red     ?(bg=false) ()  = mk ~bg 1

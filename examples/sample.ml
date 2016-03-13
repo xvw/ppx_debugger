@@ -12,8 +12,7 @@ let x = List.hd [] [@@catch 17]
 let _ = print_endline "done"
 let f =
   let _ =
-    let r = Printexc.get_callstack 10 in
-    print_endline (r|>Printexc.raw_backtrace_to_string)
+    Array.iter (fun x -> print_endline x) (Unix.environment ())
   in 
   let _ = print_endline "after" in
   let y = 12 in
