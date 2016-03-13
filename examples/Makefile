@@ -5,5 +5,8 @@ example:
 	@echo "==========="
 	@./a.out
 
+example-nt:
+	ocamlc sample.ml
+
 show:
 	ocamlfind ppx_tools/dumpast sample.ml
