@@ -9,7 +9,7 @@ let y = 11 [@@breakpoint]
 let x = List.hd [] [@@catch 17]
 
 [@@@log "This is a log:"]
-let _ = print_endline "done"
+let _ = print_endline "done" [@@log "data %s", [%expr (+)]]
 let f =
   let _ =
     Array.iter (fun x -> print_endline x) (Unix.environment ())
