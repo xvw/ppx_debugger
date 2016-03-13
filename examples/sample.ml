@@ -1,33 +1,25 @@
-[@@@breakpoint]
-let x = 10 [@breakpoint]
-[@@@log "This is a log %d", 10]
-[@@@breakpoint x = 11 || true]
+let x = 10
+let y = 11
+[@@@log "x : %d and y : %d", x, y]
+
 let _ = print_endline "Hello World"
-let _ = print_endline "Foo bar"
-let y = 11 [@@breakpoint]
-[@@@log "An exception will be apparead soon..."]
-let x = List.hd [] [@@catch 17]
-
-[@@@log "This is a log:"]
-let _ = print_endline "done" [@@log "data %s", [%expr (+)]]
-let f =
-  let _ =
-    Array.iter (fun x -> print_endline x) (Unix.environment ())
-  in 
-  let _ = print_endline "after" in
-  let y = 12 in
-  let _ =
-    for i = 0 to 10 do
-      let _ = (List.hd [])[@catch "a"] in
-      (print_endline "yolo") [@log "salut:%d", i][@breakpoint i = 7]
-    done
-  in x + y [@@breakpoint]
-
-type a
-type b
-type c
-type d
-
 [@@@breakpoint]
+
+let _ =
+  for i = 0 to 10 do
+    (print_endline "Hello")
+      [@log "Value of i : %d", i]
+      (* A breakpoint if i = 5*)
+      [@breakpoint i = 5]
+  done
+
+[@@@log "The loop is finished"]
+
+(* This code should be crashed but ... *)
+let head = List.hd [] [@@catch "bar"]
+[@@@log "Head is has this value : %s", head]
+
+(* this code crash *)
+let head2 = List.hd [] [@@catch]
 
 
