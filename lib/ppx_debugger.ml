@@ -42,6 +42,11 @@ struct
 
 end
 
+let (>|=) o f =
+  match o with
+  | Some x -> Some (f x)
+  | None -> None
+
 module Tools =
 struct
 
@@ -176,12 +181,13 @@ struct
     | x :: xs -> Exp.sequence x (sequences_of xs)
 
 
-  let fragment_file border_top line file =
+  let fragment_file location border_top line file =
     let ctn = file.content in
+    let fnd = location.Location.loc_end.Lexing.pos_lnum in
     let bmin, bmax = 0, (Array.length ctn) - 1 in
-    let i = max (line - border_top) bmin in
-    let j = min (line + border_top) bmax in
-    let len = j - (i+1) in
+    let i = max (line - border_top - 1) bmin in
+    let j = min (fnd + border_top + 1) bmax in
+    let len = j - i in
     (i, Array.sub ctn i len)
 
   let formatting_substitution location str =
@@ -207,7 +213,9 @@ struct
     Array.mapi (fun i x ->
         let open Location in
         let line = (l + i + 1) in
-        if line = location.loc_start.Lexing.pos_lnum then
+        if line >= location.loc_start.Lexing.pos_lnum
+           && line <= location.loc_end.Lexing.pos_lnum
+        then
           sprintf
             "%s%- 5d %s%s"
             (Color.yellow ())
@@ -224,12 +232,12 @@ struct
 
 
   let print_fragment location btop line file =
-    let i, s = fragment_file btop line file in
+    let i, s = fragment_file location btop line file in
     let str = format_fragment location i s in
     print_exp_as_str str
 
   let print_vb_sub location btop line file =
-    let i, s = fragment_file btop line file in
+    let i, s = fragment_file location btop line file in
     let str = raw_format_fragment formatting_substitution location i s in
     print_exp_as_str str
 
@@ -280,7 +288,7 @@ struct
 
   let expr_candidate attrs =
     List.exists (function
-        | ({txt = "trace"; loc = _}, _) -> true
+        | ({txt = "breakpoint"; loc = _}, _) -> true
         | ({txt = "catch"; loc = _}, _) -> true
         | _ -> false
       ) attrs
@@ -343,10 +351,8 @@ let process_item mapper item =
   | Pstr_attribute attr -> perform_float_attributes mapper item attr
   | _ -> Ast_mapper.(default_mapper.structure_item mapper item)
 
-let perform_vb_sub location value =
+let perform_vb_sub location file line value =
   let open Tools in
-  let fname, line, _, _ = file_data location in
-  let file = open_module fname in
   match value.pstr_desc with
   | Pstr_eval (e, _) ->
     Tools.(
@@ -359,27 +365,79 @@ let perform_vb_sub location value =
   | _ -> Tools.raise_error "Malformed catch"
 
 
-let perform_vb mapper vb =
-  let locat = vb.pvb_loc in
+let perform_attributes locat line file attrib expr =
   let rec aux (attr, e) = function
     | [] -> (List.rev attr, e)
+    | ({txt = "breakpoint"; loc=loc}, PStr []) :: xs ->
+      aux (attr, Tools.(let_in (fragment_wit_input locat 3 line file) e)) xs
+    | ({txt = "breakpoint"; loc=loc}, PStr [strct]) :: xs ->
+      aux (attr, Tools.(let_in (fragment_with_predicat locat 3 line file strct) e)) xs
     | ({txt = "catch"; loc=loc}, PStr []) :: xs ->
       aux (attr, Tools.(catch_stack locat e (exit_with 1))) xs
     | ({txt = "catch"; loc=loc}, PStr [value]) :: xs ->
-      let sub = perform_vb_sub locat value in
+      let sub = perform_vb_sub locat file line value in
       aux (attr, Tools.(catch_stack locat e sub)) xs
+    | ({txt = "log"; loc=loc}, PStr [value]) :: xs ->
+      aux (attr, Tools.(logf locat value)) xs
     | x :: xs -> aux (x :: attr, e) xs
-  in
-  let (new_attr, expr) = aux ([], vb.pvb_expr) vb.pvb_attributes in
-  {
-    vb with
-    pvb_expr = expr
-  ; pvb_attributes = new_attr
-  }
+  in aux ([], expr) attrib
+
+let perform_expr mapper exp =
+  let _ = print_endline "test" in
+  let locat = exp.pexp_loc in
+  let fname, line, _, _ = Tools.file_data locat in
+  let file = Tools.open_module fname in
+  let new_attr, new_exp =
+    perform_attributes
+      locat
+      line
+      file
+      exp.pexp_attributes
+      exp
+  in { new_exp with pexp_attributes = new_attr }
+
+let perform_vb mapper vb =
+  let open Ast_mapper in
+  let locat = vb.pvb_loc in
+  let fname, line, _, _ = Tools.file_data locat in
+  let file = Tools.open_module fname in
+  let new_attr, expr =
+    perform_attributes
+      locat
+      line
+      file
+      vb.pvb_attributes
+      vb.pvb_expr
+  in { vb with
+       pvb_expr = (mapper.expr mapper expr)
+     ; pvb_attributes = new_attr
+     }
+
 
 let process_value_binding mapper vb =
-  if Tools.expr_candidate vb.pvb_attributes then perform_vb mapper vb
+  if Tools.expr_candidate vb.pvb_attributes
+  then perform_vb mapper vb
   else Ast_mapper.(default_mapper.value_binding mapper vb)
+
+let process_expression mapper exp =
+  if Tools.expr_candidate exp.pexp_attributes
+  then perform_expr mapper exp
+  else
+    let open Ast_mapper in
+    match exp.pexp_desc with
+    | Pexp_let (rf, vb, sub_expr) ->
+      Exp.let_ rf
+        (List.map (fun x -> mapper.value_binding mapper x) vb)
+        (mapper.expr mapper sub_expr)
+    | Pexp_fun (a, e, pat, sub_expr) -> Exp.fun_ a e pat (mapper.expr mapper sub_expr)
+    | Pexp_match (e, c) -> Exp.match_ (mapper.expr mapper e) c
+    | Pexp_try (e, c) -> Exp.try_ (mapper.expr mapper e) c
+    | Pexp_tuple xs -> Exp.tuple (List.map (fun x -> mapper.expr mapper x) xs)
+    | Pexp_ifthenelse (i, th, e) ->
+      Exp.ifthenelse i (mapper.expr mapper th) (e >|= mapper.expr mapper)
+    | Pexp_for (p, e1, e2, dirf, e3) ->
+      Exp.for_ p e1 e2 dirf (mapper.expr mapper e3)
+    | _ -> default_mapper.expr mapper exp
 
 
 let debug_mapper =
@@ -387,6 +445,7 @@ let debug_mapper =
     default_mapper with
     structure_item = process_item
   ; value_binding = process_value_binding
+  ; expr = process_expression
   }
 
 let () =
