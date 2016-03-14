@@ -41,6 +41,26 @@ Compiled with : `ocamlc -ppx ppx_debugger.native -g sample.ml` provide this exec
 
 ![sample1](http://full.ouplo.com/10/a/zWI6.gif)
 
+
+## Installation 
+
+`opam install ppx_debugger`
+
+or, without OPAM :
+
+```
+git clone https://github.com/xvw/ppx_debugger.git
+./configure
+make 
+make install
+```
+
+## Usage
+
+You just have to pass "-ppx ppx_debugger" and use "-g" for launch OCaml
+in debug-mode
+
+
 ## Extension 
 
 Each extension attribute could be used with @, @@, or @@@ (according to the OCaml manual) :

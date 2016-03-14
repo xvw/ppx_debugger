@@ -1,5 +1,5 @@
 example:
-	ocamlc -ppx ../ppx_debugger.native -dsource -g unix.cma sample.ml
+	ocamlc -ppx ppx_debugger -dsource -g sample.ml
 	@rm -rf *.cm*
 	@echo "RUN PROGRAM"
 	@echo "==========="
