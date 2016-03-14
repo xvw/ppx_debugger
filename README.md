@@ -68,6 +68,10 @@ Attributes could be chained : `[@@attr1][@@attr2]...`
 
 ### log 
 
+-  `[@log format, arg1, arg2...etc]`
+-  `[@@log format, arg1, arg2...etc]`
+-  `[@@@log format, arg1, arg2...etc]`
+
 Log write on stdout a message with a location. The first parameter of a log is a format so you 
 can print some fixed values (separated by coma).  
 For example : 
@@ -87,6 +91,13 @@ Breakpoint interrupt the execution. A breakpoint could be decorated with a predi
 example, this code interrupt at the begining of the execution, and once during the execution of
 the loop :
 
+- `[@breakpoint]`
+- `[@@breakpoint]`
+- `[@@@breakpoint]`
+- `[@breakpoint boolean_expression]`
+- `[@@breakpoint boolean_expression]`
+- `[@@@breakpoint boolean_expression]`
+
 ```ocaml
 [@@@breakpoint]
 let () = for i = 0 to 10 do 
@@ -98,3 +109,5 @@ done
 
 
 ### catch
+
+Catch try an expression and catch his failure
