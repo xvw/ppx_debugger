@@ -83,4 +83,18 @@ done
 
 ### breakpoint 
 
+Breakpoint interrupt the execution. A breakpoint could be decorated with a predicate. For 
+example, this code interrupt at the begining of the execution, and once during the execution of
+the loop :
+
+```ocaml
+[@@@breakpoint]
+let () = for i = 0 to 10 do 
+   (Printf.printf "Iteration n°%d\n" i) [@breakpoint i = 5]
+done
+[@@@log "Exit the loop"]
+```
+![Sample of breakpoint](http://full.ouplo.com/10/b/TDH7.gif)
+
+
 ### catch
