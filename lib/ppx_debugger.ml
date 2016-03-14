@@ -290,6 +290,7 @@ struct
     List.exists (function
         | ({txt = "breakpoint"; loc = _}, _) -> true
         | ({txt = "catch"; loc = _}, _) -> true
+        | ({txt = "log"; loc = _}, _) -> true
         | _ -> false
       ) attrs
 
@@ -349,6 +350,10 @@ end
 let process_item mapper item =
   match item.pstr_desc with
   | Pstr_attribute attr -> perform_float_attributes mapper item attr
+  | Pstr_eval (e, attr) ->
+    Str.eval
+      ~attrs:attr
+      Ast_mapper.(mapper.expr mapper e)
   | _ -> Ast_mapper.(default_mapper.structure_item mapper item)
 
 let perform_vb_sub location file line value =
@@ -378,12 +383,13 @@ let perform_attributes locat line file attrib expr =
       let sub = perform_vb_sub locat file line value in
       aux (attr, Tools.(catch_stack locat e sub)) xs
     | ({txt = "log"; loc=loc}, PStr [value]) :: xs ->
-      aux (attr, Tools.(logf locat value)) xs
-    | x :: xs -> aux (x :: attr, e) xs
+      aux (attr, Tools.(let_in e (logf locat value))) xs
+    | (x, pl) :: xs ->
+      let _ = print_endline (x.txt) in
+      aux ((x, pl) :: attr, e) xs
   in aux ([], expr) attrib
 
 let perform_expr mapper exp =
-  let _ = print_endline "test" in
   let locat = exp.pexp_loc in
   let fname, line, _, _ = Tools.file_data locat in
   let file = Tools.open_module fname in
@@ -421,7 +427,7 @@ let process_value_binding mapper vb =
 
 let process_expression mapper exp =
   if Tools.expr_candidate exp.pexp_attributes
-  then perform_expr mapper exp
+  then (perform_expr mapper exp)
   else
     let open Ast_mapper in
     match exp.pexp_desc with
@@ -438,6 +444,10 @@ let process_expression mapper exp =
     | Pexp_for (p, e1, e2, dirf, e3) ->
       Exp.for_ p e1 e2 dirf (mapper.expr mapper e3)
     | Pexp_while (e1, e2) -> Exp.while_ e1 (mapper.expr mapper e2)
+    | Pexp_apply (e, ls) ->
+      Exp.apply
+        (mapper.expr mapper e)
+        (List.map (fun (a, ex) -> a, (mapper.expr mapper ex)) ls)
     | _ -> default_mapper.expr mapper exp
 
 

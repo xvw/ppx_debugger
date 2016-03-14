@@ -64,10 +64,21 @@ let _ =
     done
 ```
 
-Attributes could be chained : `[@@attr1][@attr2]...`
+Attributes could be chained : `[@@attr1][@@attr2]...`
 
 ### log 
 
+Log write on stdout a message with a location. The first parameter of a log is a format so you 
+can print some fixed values (separated by coma).  
+For example : 
+
+```ocaml
+[@@@log "Enter in a Loop"]
+let () = for i = 0 to 10 do 
+   (print_endline "Yo") [@log "value of %s : %d", "i", i]
+done
+[@@@log "Exit the loop"]
+```
 
 
 ### breakpoint 
