@@ -79,7 +79,7 @@ let () = for i = 0 to 10 do
 done
 [@@@log "Exit the loop"]
 ```
-
+![Sample of log](http://full.ouplo.com/10/b/It2t.gif)
 
 ### breakpoint 
 
