@@ -14,7 +14,9 @@ OCamlVersion: >= 4.03.0
 Library "debugger_lib"
   Path:            src/lib
   Modules:         Debugger
-  InternalModules: DbgColor
+  InternalModules:
+    DbgColor,
+    DbgPpx
 
 Executable ppx_debugger
   Path:            src
