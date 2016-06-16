@@ -20,3 +20,12 @@
 
 module Color = DbgColor
 module Ppx   = DbgPpx
+
+let general_structure mapper structure =
+  structure
+
+let new_mapper =
+  Ast_mapper.{
+    default_mapper with
+    structure = general_structure
+  }

@@ -21,3 +21,7 @@
 open Parsetree
 open Asttypes
 open Ast_helper
+
+let () =
+  Ast_mapper.run_main (
+    fun argv -> Debugger.new_mapper)

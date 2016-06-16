@@ -12,16 +12,18 @@ FilesAB: src/META.ab
 OCamlVersion: >= 4.03.0
 
 Library "debugger_lib"
-  Path:            src/lib
+  Path:            lib
   Modules:         Debugger
   InternalModules:
     DbgColor,
     DbgPpx
-
-Executable ppx_debugger
-  Path:            src
   BuildDepends:
-    compiler-libs.common,
-    debugger_lib
+    compiler-libs.common
+
+Executable "ppx_debugger"
+  Path:            src
   MainIs:          ppx_debugger.ml
   CompiledObject:  best
+  BuildDepends:
+    debugger_lib,
+    compiler-libs.common
