@@ -17,7 +17,16 @@ Library "debugger_lib"
   InternalModules:
     DbgColor,
     DbgPpx
+  Install:         false
   BuildDepends:
+    compiler-libs.common
+
+Library "ppx_debugger"
+  Path:            src
+  FindlibName:     ppx_debugger
+  Modules:         Ppx_debugger
+  BuildDepends:
+    debugger_lib,
     compiler-libs.common
 
 Executable "ppx_debugger"

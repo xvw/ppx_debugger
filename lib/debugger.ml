@@ -29,7 +29,6 @@ let general_structure mapper str =
   let r = List.map (fun x -> structure_item mapper x) str in
   Ast_helper.(Str.eval (Ppx.Fabric.print_endline "Hello World")) :: r
 
-
 let new_mapper =
   Ast_mapper.{
     default_mapper with
