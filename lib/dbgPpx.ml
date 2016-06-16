@@ -17,3 +17,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
 *)
+
+
+open Printf
+open Parsetree
+open Asttypes
+open Ast_helper
+
+let define_loc ?(loc = !default_loc) value = { txt = value; loc = loc }
+let loc = define_loc
+let ident ?(loc = !default_loc) value = define_loc ~loc (Longident.Lident value)
+let exp_ident x = Exp.ident (ident x)
+let string value = Exp.constant (Const.string value)
+let int value = Exp.constant (Const.int value)
+
+module Fabric =
+struct
+
+  let print_endline value =
+    let e = exp_ident "print_endline" in
+    Exp.apply e [Nolabel, string value]
+
+end

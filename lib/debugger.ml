@@ -21,8 +21,14 @@
 module Color = DbgColor
 module Ppx   = DbgPpx
 
-let general_structure mapper structure =
-  structure
+let structure_item mapper item =
+  Ast_mapper.(default_mapper.structure_item mapper item)
+
+let general_structure mapper str =
+  let open Ast_mapper in
+  let r = List.map (fun x -> structure_item mapper x) str in
+  Ast_helper.(Str.eval (Ppx.Fabric.print_endline "Hello World")) :: r
+
 
 let new_mapper =
   Ast_mapper.{
