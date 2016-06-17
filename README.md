@@ -1,4 +1,4 @@
-> Ppx_debugger is still in developement (but is usable)
+> This project is currently rewritted for Caml 4.03 ! 
 
 # Ppx_debugger
 
