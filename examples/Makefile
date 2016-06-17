@@ -13,3 +13,7 @@ show:
 
 clean:
 	rm -rf *.cm*
+<<<<<<< HEAD
+=======
+	
+>>>>>>> new-version

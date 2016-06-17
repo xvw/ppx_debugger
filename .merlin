@@ -1,3 +1,11 @@
+<<<<<<< HEAD
 B _build/**
 S src*/**
 PKG compiler-libs.common
+=======
+B _build/src/**
+B _build/lib/**
+S src*/**
+S lib/**
+PKG compiler-libs.common
+>>>>>>> new-version

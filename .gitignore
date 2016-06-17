@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 # Created by https://www.gitignore.io/api/emacs,ocaml
 
@@ -37,6 +38,8 @@ tramp
 
 
 ### OCaml ###
+=======
+>>>>>>> new-version
 *.annot
 *.cmo
 *.cma
@@ -46,6 +49,7 @@ tramp
 *.cmx
 *.cmxs
 *.cmxa
+<<<<<<< HEAD
 
 # ocamlbuild working directory
 _build/
@@ -58,3 +62,10 @@ _build/
 setup.data
 setup.log
 
+=======
+_build/
+*.byte
+*.native
+setup.data
+setup.log
+>>>>>>> new-version

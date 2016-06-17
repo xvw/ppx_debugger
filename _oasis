@@ -8,6 +8,7 @@ Homepage: https://github.com/xvw/ppx_debugger
 OASISFormat: 0.4
 BuildTools: ocamlbuild
 Plugins: META (0.3), DevFiles (0.3)
+<<<<<<< HEAD
 FilesAB: lib/META.ab
 OCamlVersion: >= 4.02
 
@@ -22,3 +23,33 @@ Executable ppx_debugger
   BuildDepends:   compiler-libs.common
   MainIs:         ppx_debugger.ml
   CompiledObject: best
+=======
+FilesAB: src/META.ab
+OCamlVersion: >= 4.03.0
+
+Library "debugger_lib"
+  Path:            lib
+  Modules:         Debugger
+  InternalModules:
+    DbgColor,
+    DbgPpx
+  Install:         false
+  BuildDepends:
+    compiler-libs.common
+
+Library "ppx_debugger"
+  Path:            src
+  FindlibName:     ppx_debugger
+  Modules:         Ppx_debugger
+  BuildDepends:
+    debugger_lib,
+    compiler-libs.common
+
+Executable "ppx_debugger"
+  Path:            src
+  MainIs:          ppx_debugger.ml
+  CompiledObject:  best
+  BuildDepends:
+    debugger_lib,
+    compiler-libs.common
+>>>>>>> new-version
