@@ -18,19 +18,47 @@
  * THE SOFTWARE.
 *)
 
+open Parsetree
+open Ast_mapper
+
 module Color = DbgColor
 module Ppx   = DbgPpx
 
-let structure_item mapper item =
-  Ast_mapper.(default_mapper.structure_item mapper item)
+(* Default mapper to specialize behaviour of mapper *)
+module Polyfill =
+struct
 
+  let structure_item mapper item =
+    default_mapper.structure_item mapper item
+
+  let payload_mapper mapper = function
+    | PStr str -> PStr (default_mapper.structure mapper str)
+    | elt -> elt
+
+  let module_expr_mapper mapper modl =
+    match modl.pmod_desc with
+    | Pmod_structure str ->
+      let strct = default_mapper.structure mapper str in {
+        modl with pmod_desc = (Pmod_structure strct)
+      }
+    | elt -> modl
+
+end
+
+(* Mapper for structures *)
 let general_structure mapper str =
-  let open Ast_mapper in
-  let r = List.map (fun x -> structure_item mapper x) str in
-  Ast_helper.(Str.eval (Ppx.Fabric.print_endline "Hello World")) :: r
+  let r =
+    List.map
+      (fun x -> Polyfill.structure_item mapper x)
+      str in
+  let pl = Ast_helper.Str.eval (Ppx.Fabric.print_endline "Hello World") in
+  pl :: r
 
+(* New Mapper *)
 let new_mapper =
   Ast_mapper.{
     default_mapper with
-    structure = general_structure
+    payload     = Polyfill.payload_mapper
+  ; module_expr = Polyfill.module_expr_mapper
+  ; structure   = general_structure
   }
