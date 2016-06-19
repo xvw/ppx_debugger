@@ -30,9 +30,17 @@ let ident ?(loc = !default_loc) value = define_loc ~loc (Longident.Lident value)
 let exp_ident x = Exp.ident (ident x)
 let string value = Exp.constant (Const.string value)
 let int value = Exp.constant (Const.int value)
+let pattern name = Pat.var (loc name)
+let binding name expr = Vb.mk (pattern name) expr
 
 module Fabric =
 struct
+
+  let module_code file =
+    let content = DbgUtil.open_file file in
+    let lines = List.map string content in
+    let arr = Exp.array lines in
+
 
   let print_endline value =
     let e = exp_ident "print_endline" in
