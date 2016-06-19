@@ -16,6 +16,7 @@ Library "debugger_lib"
   Modules:         Debugger
   InternalModules:
     DbgColor,
+    DbgUtil,
     DbgPpx
   Install:         false
   BuildDepends:

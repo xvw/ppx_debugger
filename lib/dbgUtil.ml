@@ -18,25 +18,10 @@
  * THE SOFTWARE.
 *)
 
-open Parsetree
-open Ast_mapper
-
-module Color = DbgColor
-module Ppx   = DbgPpx
-module Util  = DbgUtil
-
-(* Mapper for structure_item *)
-let structure_item = default_mapper.structure_item
-
-(* Mapper for structures *)
-let general_structure mapper str =
-  let r = List.map (fun x -> structure_item mapper x) str in
-  let pl = Ast_helper.Str.eval (Ppx.Fabric.print_endline "Hello World") in
-  pl :: r
-
-(* New Mapper *)
-let new_mapper =
-  Ast_mapper.{
-    default_mapper with
-    structure   = general_structure
-  }
+(* Open file as a list of string *)
+let open_file filename =
+  let channel = open_in filename in
+  let rec aux acc =
+    try let l = input_line channel in aux (l :: acc)
+    with End_of_file -> List.rev acc
+  in aux []
