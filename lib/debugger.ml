@@ -28,17 +28,17 @@ module Ppx   = DbgPpx
 module Polyfill =
 struct
 
-  let structure_item mapper item =
-    default_mapper.structure_item mapper item
+  let structure_item = default_mapper.structure_item
+  let structure  = default_mapper.structure
 
   let payload_mapper mapper = function
-    | PStr str -> PStr (default_mapper.structure mapper str)
+    | PStr str -> PStr (structure mapper str)
     | elt -> elt
 
   let module_expr_mapper mapper modl =
     match modl.pmod_desc with
     | Pmod_structure str ->
-      let strct = default_mapper.structure mapper str in {
+      let strct = structure mapper str in {
         modl with pmod_desc = (Pmod_structure strct)
       }
     | elt -> modl
@@ -47,10 +47,7 @@ end
 
 (* Mapper for structures *)
 let general_structure mapper str =
-  let r =
-    List.map
-      (fun x -> Polyfill.structure_item mapper x)
-      str in
+  let r = List.map (fun x -> Polyfill.structure_item mapper x) str in
   let pl = Ast_helper.Str.eval (Ppx.Fabric.print_endline "Hello World") in
   pl :: r
 
