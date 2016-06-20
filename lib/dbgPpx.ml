@@ -24,23 +24,41 @@ open Parsetree
 open Asttypes
 open Ast_helper
 
-let define_loc ?(loc = !default_loc) value = { txt = value; loc = loc }
+let raise_error ?(loc = !default_loc) message =
+  let open Location in
+  raise (Error (error ~loc message))
+
+let define_loc ?(loc = !default_loc) value =
+  { txt = value; loc = loc }
+
 let loc = define_loc
-let ident ?(loc = !default_loc) value = define_loc ~loc (Longident.Lident value)
-let exp_ident x = Exp.ident (ident x)
-let string value = Exp.constant (Const.string value)
-let int value = Exp.constant (Const.int value)
-let pattern name = Pat.var (loc name)
-let binding name expr = Vb.mk (pattern name) expr
+
+let ident ?(loc = !default_loc) value =
+  define_loc ~loc (Longident.Lident value)
+
+let exp_ident x =
+  Exp.ident (ident x)
+
+let string value =
+  Exp.constant (Const.string value)
+
+let int value =
+  Exp.constant (Const.int value)
+
+let pattern name =
+  Pat.var (loc name)
+
+let binding name expr =
+  Vb.mk (pattern name) expr
 
 module Fabric =
 struct
-(* 
+
   let module_code file =
     let content = DbgUtil.open_file file in
     let lines = List.map string content in
     let arr = Exp.array lines in
-    let value = *)
+    Str.value Nonrecursive [binding "debugger_module_code" arr]
 
 
   let print_endline value =

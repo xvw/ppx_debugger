@@ -30,14 +30,22 @@ let structure_item = default_mapper.structure_item
 let structure = default_mapper.structure
 
 (* Mapper for all transformation *)
-let general_mapper = Ast_mapper.{ default_mapper with structure = structure }
+let general_mapper = Ast_mapper.{
+    default_mapper with structure = structure
+  }
 
+let append_module_code _ = function
+  | [] -> Ppx.raise_error "The module is empty"
+  | (elt :: _) as str ->
+    let open Location in
+    let input = elt.pstr_loc.loc_start.Lexing.pos_fname in
+    let pl = Ppx.Fabric.module_code input in
+    pl :: (general_mapper.structure general_mapper str)
 
 (* New Mapper only for the toplevel *)
 let toplevel_mapper =
   Ast_mapper.{
     default_mapper with
-    structure   = fun _ str ->
-      let pl = Ast_helper.Str.eval (Ppx.Fabric.print_endline "Hello World") in
-      pl :: (general_mapper.structure general_mapper str)
+    structure   = append_module_code
+    ; signature = fun _ -> default_mapper.signature default_mapper
   }
