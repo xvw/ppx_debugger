@@ -35,11 +35,12 @@ let binding name expr = Vb.mk (pattern name) expr
 
 module Fabric =
 struct
-
+(* 
   let module_code file =
     let content = DbgUtil.open_file file in
     let lines = List.map string content in
     let arr = Exp.array lines in
+    let value = *)
 
 
   let print_endline value =

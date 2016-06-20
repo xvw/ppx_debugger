@@ -27,16 +27,17 @@ module Util  = DbgUtil
 
 (* Mapper for structure_item *)
 let structure_item = default_mapper.structure_item
+let structure = default_mapper.structure
 
-(* Mapper for structures *)
-let general_structure mapper str =
-  let r = List.map (fun x -> structure_item mapper x) str in
-  let pl = Ast_helper.Str.eval (Ppx.Fabric.print_endline "Hello World") in
-  pl :: r
+(* Mapper for all transformation *)
+let general_mapper = Ast_mapper.{ default_mapper with structure = structure }
 
-(* New Mapper *)
-let new_mapper =
+
+(* New Mapper only for the toplevel *)
+let toplevel_mapper =
   Ast_mapper.{
     default_mapper with
-    structure   = general_structure
+    structure   = fun _ str ->
+      let pl = Ast_helper.Str.eval (Ppx.Fabric.print_endline "Hello World") in
+      pl :: (general_mapper.structure general_mapper str)
   }
