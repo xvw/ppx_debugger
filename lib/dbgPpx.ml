@@ -54,6 +54,7 @@ let binding name expr =
 module Fabric =
 struct
 
+
   let module_code file =
     let content = DbgUtil.open_file file in
     let lines = List.map string content in
@@ -64,5 +65,11 @@ struct
   let print_endline value =
     let e = exp_ident "print_endline" in
     Exp.apply e [Nolabel, string value]
+
+  let header txt =
+    let open DbgColor in
+    let str = scope [green ~bg:true () ; black ()] ("   "^txt^"   ") in
+    print_endline str
+    |> Str.eval
 
 end

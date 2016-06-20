@@ -27,6 +27,7 @@ let make ?(bg=false) =
 
 (* Presaved colors *)
 let reset = "\027[0m"
+let black   ?(bg=false) ()  = make ~bg 0
 let red     ?(bg=false) ()  = make ~bg 1
 let green   ?(bg=false) ()  = make ~bg 2
 let yellow  ?(bg=false) ()  = make ~bg 3
@@ -34,3 +35,7 @@ let blue    ?(bg=false) ()  = make ~bg 4
 let magenta ?(bg=false) ()  = make ~bg 5
 let cyan    ?(bg=false) ()  = make ~bg 6
 let white   ?(bg=false) ()  = make ~bg 7
+
+let scope l text =
+  let li = List.fold_left (^) "" l in
+  sprintf "%s%s%s" li text reset

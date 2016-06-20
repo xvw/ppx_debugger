@@ -39,8 +39,11 @@ let append_module_code _ = function
   | (elt :: _) as str ->
     let open Location in
     let input = elt.pstr_loc.loc_start.Lexing.pos_fname in
-    let pl = Ppx.Fabric.module_code input in
-    pl :: (general_mapper.structure general_mapper str)
+    let open Ppx.Fabric in
+    let pl = module_code input in
+    pl
+    :: header "Start with ppx_debugger"  
+    :: (general_mapper.structure general_mapper str)
 
 (* New Mapper only for the toplevel *)
 let toplevel_mapper =
