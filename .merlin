@@ -1,5 +1,0 @@
-B _build/src/**
-B _build/lib/**
-S src*/**
-S lib/**
-PKG compiler-libs.common
