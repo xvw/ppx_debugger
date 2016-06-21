@@ -60,6 +60,9 @@ let rec sequences_of = function
   | [x] -> x
   | x :: xs -> Exp.sequence x (sequences_of xs)
 
+let fun_of pat =
+  Exp.fun_ Nolabel None (pattern pat)
+
 
 module Fabric =
 struct
@@ -115,20 +118,52 @@ struct
       ; Nolabel, int (max 1 len)
       ])
 
-  let array_iteri lambda arr =
+  let array_iteri lambda arr=
     let f = import_function "Array" "iteri" in
     Exp.(apply f [
         Nolabel, lambda
-      ; Nolabel, exp_ident code_array
+      ; Nolabel, arr
       ])
 
+  let reveal_line_lambda =
+    let open Exp in
+    let open DbgColor in
+    let li = scope [blue ~bg:true (); yellow ()] " %- 5d  " in
+    let ll = scope [yellow ()] " %s\n" in
+    let ff = li ^ ll in
+    let app = apply (exp_ident "+") [
+        Nolabel, exp_ident "start";
+        Nolabel, exp_ident "i";
+      ]
+    in
+    let pf = import_function "Printf" "printf" in
+      fun_of "start" begin
+        fun_of "i" begin
+          fun_of "line" Exp.(apply pf [
+              Nolabel, string ff
+            ; Nolabel, apply (exp_ident "succ") [Nolabel, app]
+              ; Nolabel, exp_ident "line"
+            ])
+        end
+      end
 
   let reveal_loc loc =
     let open Location in
     let start  = loc.loc_start.Lexing.pos_lnum - 1 in
     let stop   = loc.loc_end.Lexing.pos_lnum - 1 in
     let length = stop - start in
-    let arr_sub = array_sub code_array start length in ()
+    let arr_sub = array_sub code_array start length in
+    let arr_itr =
+      array_iteri
+        (Exp.apply reveal_line_lambda [Nolabel, int start])
+        arr_sub
+    in
+    sequences_of [
+      print_endline
+        (DbgColor.(scope [blue ~bg:true (); white ()] "  Reveal source code  "))
+    ; arr_itr
+    ; press_enter ()
+    ]
 
 
   let header txt file =
