@@ -45,6 +45,9 @@ let string value =
 let int value =
   Exp.constant (Const.int value)
 
+let _true = Exp.construct (ident "true") None
+let _false = Exp.construct (ident "false") None
+
 let pattern name =
   Pat.var (loc name)
 
@@ -73,6 +76,11 @@ struct
   let identity =
     let open Exp in
     fun_ Nolabel None (Pat.var (loc "x")) (exp_ident "x")
+
+  let active_stacktrace =
+    let c = import_function "Printexc" "record_backtrace" in
+    Exp.apply c [Nolabel, _true]
+    |> Str.eval
 
   let module_code file =
     let content = DbgUtil.open_file file in
