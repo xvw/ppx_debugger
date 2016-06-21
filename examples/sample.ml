@@ -4,4 +4,5 @@ let () = print_endline "hello"
 [@@@debugger.reveal]
 module X = struct
   let y = 10000
-end
+  let y = 2000
+end [@@debugger.reveal]
