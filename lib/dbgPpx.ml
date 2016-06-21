@@ -95,7 +95,8 @@ struct
     if quiet
     then e
     else sequences_of [
-        print_endline "  press [ENTER]  "
+        print_endline
+          DbgColor.(scope [magenta ~bg:true (); white ()] "  Press [ENTER]  " )
       ; print_endline ""
       ; e
       ]
