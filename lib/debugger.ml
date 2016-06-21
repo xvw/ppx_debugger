@@ -20,18 +20,27 @@
 
 open Parsetree
 open Ast_mapper
+open Ast_helper
+open Asttypes
 
 module Color = DbgColor
 module Ppx   = DbgPpx
 module Util  = DbgUtil
 
 (* Mapper for structure_item *)
-let structure_item = default_mapper.structure_item
+let structure_item mapper item =
+  match item.pstr_desc with
+  | Pstr_attribute ({txt="debugger.reveal"; loc = location}, PStr []) ->
+    Str.eval (Ppx.Fabric.reveal_loc location)
+  | _ -> default_mapper.structure_item mapper item
+
 let structure = default_mapper.structure
 
 (* Mapper for all transformation *)
 let general_mapper = Ast_mapper.{
-    default_mapper with structure = structure
+    default_mapper with
+    structure = structure
+  ; structure_item = structure_item
   }
 
 let append_module_code _ = function

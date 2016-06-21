@@ -64,6 +64,9 @@ let rec sequences_of = function
 module Fabric =
 struct
 
+  let code_array =
+    "debugger_module_code"
+
   let identity =
     let open Exp in
     fun_ Nolabel None (Pat.var (loc "x")) (exp_ident "x")
@@ -72,7 +75,7 @@ struct
     let content = DbgUtil.open_file file in
     let lines = List.map string content in
     let arr = Exp.array lines in
-    Str.value Nonrecursive [binding "debugger_module_code" arr]
+    Str.value Nonrecursive [binding code_array arr]
 
   let print_endline ?(bs=true) value =
     let f =
@@ -103,6 +106,30 @@ struct
 
   let toplevel_press_enter ?(quiet=false) () =
     Str.eval (press_enter ~quiet ())
+
+  let array_sub target i len =
+    let f = import_function "Array" "sub" in
+    Exp.(apply f [
+        Nolabel, exp_ident code_array
+      ; Nolabel, int i
+      ; Nolabel, int (max 1 len)
+      ])
+
+  let array_iteri lambda arr =
+    let f = import_function "Array" "iteri" in
+    Exp.(apply f [
+        Nolabel, lambda
+      ; Nolabel, exp_ident code_array
+      ])
+
+
+  let reveal_loc loc =
+    let open Location in
+    let start  = loc.loc_start.Lexing.pos_lnum - 1 in
+    let stop   = loc.loc_end.Lexing.pos_lnum - 1 in
+    let length = stop - start in
+    let arr_sub = array_sub code_array start length in ()
+
 
   let header txt file =
     let open DbgColor in
