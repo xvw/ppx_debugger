@@ -23,6 +23,7 @@ Library "debugger_lib"
     DbgPpx
   Install:         false
   BuildDepends:
+    unix,
     compiler-libs.common
 
 

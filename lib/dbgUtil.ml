@@ -25,3 +25,16 @@ let open_file filename =
     try let l = input_line channel in aux (l :: acc)
     with End_of_file -> List.rev acc
   in aux []
+
+(* Convert timestamp to d-m-Y H:i*)
+let to_date tm =
+  let open Unix in
+  let date = gmtime tm in
+  Printf.sprintf
+    "%d-%d-%d %d:%d:%d"
+    date.tm_mday
+    date.tm_mon
+    (date.tm_year + 1900)
+    date.tm_hour
+    date.tm_min
+    date.tm_sec

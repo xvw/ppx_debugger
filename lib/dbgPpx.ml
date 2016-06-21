@@ -51,9 +51,22 @@ let pattern name =
 let binding name expr =
   Vb.mk (pattern name) expr
 
+let import_function modname funcname =
+  loc Longident.(Ldot (Lident modname, funcname))
+  |> Exp.ident
+
+let rec sequences_of = function
+  | [] -> raise_error "Malformed sequence"
+  | [x] -> x
+  | x :: xs -> Exp.sequence x (sequences_of xs)
+
+
 module Fabric =
 struct
 
+  let identity =
+    let open Exp in
+    fun_ Nolabel None (Pat.var (loc "x")) (exp_ident "x")
 
   let module_code file =
     let content = DbgUtil.open_file file in
@@ -61,15 +74,51 @@ struct
     let arr = Exp.array lines in
     Str.value Nonrecursive [binding "debugger_module_code" arr]
 
-
-  let print_endline value =
-    let e = exp_ident "print_endline" in
+  let print_endline ?(bs=true) value =
+    let f =
+      if bs
+      then "print_endline"
+      else "print_string" in
+    let e = exp_ident f in
     Exp.apply e [Nolabel, string value]
 
-  let header txt =
+  let press_enter ?(quiet=false) () =
+    let f = import_function "Scanf" "scanf" in
+    let open Exp in
+    let a =
+      apply f [
+        Nolabel, string "%s\n"
+      ; Nolabel, identity
+      ]
+    in
+    let e = apply (exp_ident "ignore") [Nolabel, a] in
+    if quiet
+    then e
+    else sequences_of [
+        print_endline "  press [ENTER]  "
+      ; print_endline ""
+      ; e
+      ]
+
+  let toplevel_press_enter ?(quiet=false) () =
+    Str.eval (press_enter ~quiet ())
+
+  let header txt file =
     let open DbgColor in
-    let str = scope [green ~bg:true () ; black ()] ("   "^txt^"   ") in
-    print_endline str
+    let date = Unix.stat file in
+    let hd =
+      scope
+        [green ~bg:true () ; black ()]
+        ("   "^txt^"   ")
+    in
+    let md = Unix.(date.st_mtime) in
+    let tl = scope [blue ~bg:true (); white ()] "  mtime  " in
+    let tm =
+      scope
+        [blue (); white ~bg:true ()]
+        (sprintf "  %s  " (DbgUtil.to_date md))
+    in
+    print_endline (hd ^ tl ^ tm)
     |> Str.eval
 
 end

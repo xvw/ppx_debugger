@@ -42,7 +42,8 @@ let append_module_code _ = function
     let open Ppx.Fabric in
     let pl = module_code input in
     pl
-    :: header "Start with ppx_debugger"  
+    :: header "Start with ppx_debugger" input
+    :: toplevel_press_enter ~quiet:false ()
     :: (general_mapper.structure general_mapper str)
 
 (* New Mapper only for the toplevel *)
