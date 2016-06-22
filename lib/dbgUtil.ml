@@ -38,3 +38,6 @@ let to_date tm =
     date.tm_hour
     date.tm_min
     date.tm_sec
+
+let has_attribute elt value = false
+let get_payload elt value = ()
