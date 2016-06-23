@@ -76,6 +76,13 @@ struct
     let open Exp in
     fun_ Nolabel None (Pat.var (loc "x")) (exp_ident "x")
 
+  let let_in expr1 expr2 =
+    Exp.let_
+      Nonrecursive
+      [Vb.mk (Pat.any ()) expr1]
+      expr2
+
+
   let active_stacktrace =
     let c = import_function "Printexc" "record_backtrace" in
     Exp.apply c [Nolabel, _true]
@@ -157,7 +164,7 @@ struct
   let reveal_loc loc =
     let open Location in
     let start  = loc.loc_start.Lexing.pos_lnum - 1 in
-    let stop   = loc.loc_end.Lexing.pos_lnum - 1 in
+    let stop   = loc.loc_end.Lexing.pos_lnum in
     let length = stop - start in
     let arr_sub = array_sub code_array start length in
     let arr_itr =

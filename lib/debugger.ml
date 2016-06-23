@@ -30,14 +30,24 @@ module Util  = DbgUtil
 
 (* Perform attributes substitution *)
 let perform_attributes attributes expr =
+  let open Ppx.Fabric in
   let rec aux (attr, e) = function
     | [] -> (List.rev attr, e)
+    | ({txt = "debugger.reveal"; loc=loc}, PStr []) :: xs ->
+      let point = let_in (reveal_loc expr.pexp_loc) e in
+      aux (attr, point) xs
     | x :: xs -> aux (x :: attr, e) xs
   in aux ([], expr) attributes
 
 (* Mapper for structure_item *)
 let process_structure_item mapper item =
   match item.pstr_desc with
+  | Pstr_eval (e, attributes) ->
+    if Util.attributes_candidate attributes
+    then
+      let at, ex = perform_attributes attributes e in
+      Str.eval ~attrs:at ex
+    else item
   | Pstr_attribute ({txt="debugger.reveal"; loc = location}, PStr []) ->
     Str.eval (Ppx.Fabric.reveal_loc location)
   | _ -> default_mapper.structure_item mapper item
@@ -50,11 +60,29 @@ let perform_expr expr =
       expr
   in {new_expression with pexp_attributes = new_attributes}
 
+(* Mapper for value binding *)
+let perform_value_binding mapper vb =
+  let new_attributes, new_expr =
+    perform_attributes
+      vb.pvb_attributes
+      vb.pvb_expr
+  in {vb with
+      pvb_expr = (mapper.expr mapper new_expr)
+    ; pvb_attributes = new_attributes
+     }
+
+(* Remap expression *)
 let process_expr mapper expr =
-  if (Util.attributes_candidate expr.pexp_attributes)
+  if Util.attributes_candidate expr.pexp_attributes
   then perform_expr expr
   else match expr.pexp_desc with
     | _ -> default_mapper.expr mapper expr
+
+(* Remap values binding *)
+let process_value_binding mapper vb =
+  if Util.attributes_candidate vb.pvb_attributes
+  then perform_value_binding mapper vb
+  else default_mapper.value_binding mapper vb
 
 (* Mapper for structure *)
 let process_structure = default_mapper.structure
@@ -65,6 +93,7 @@ let general_mapper = Ast_mapper.{
     structure = process_structure
   ; structure_item = process_structure_item
   ; expr = process_expr
+  ; value_binding = process_value_binding
   }
 
 let append_module_code _ = function
