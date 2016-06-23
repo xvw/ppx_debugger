@@ -43,10 +43,10 @@ let to_date tm =
     date.tm_min
     date.tm_sec
 
-let expr_candidate e =
+let attributes_candidate attributes =
   List.exists
     (fun x ->
        let attr = (fst x).txt in
        List.mem attr DbgConfig.keywords
     )
-    e.pexp_attributes
+    attributes

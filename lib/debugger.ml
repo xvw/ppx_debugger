@@ -28,20 +28,40 @@ module Color = DbgColor
 module Ppx   = DbgPpx
 module Util  = DbgUtil
 
+(* Perform attributes substitution *)
+let perform_attributes attr expr =
+  (attr, expr)
+
 (* Mapper for structure_item *)
-let structure_item mapper item =
+let process_structure_item mapper item =
   match item.pstr_desc with
   | Pstr_attribute ({txt="debugger.reveal"; loc = location}, PStr []) ->
     Str.eval (Ppx.Fabric.reveal_loc location)
   | _ -> default_mapper.structure_item mapper item
 
-let structure = default_mapper.structure
+(* Mapper for expression *)
+let perform_expr expr =
+  let new_attributes, new_expression =
+    perform_attributes
+      expr.pexp_attributes
+      expr
+  in {new_expression with pexp_attributes = new_attributes}
+
+let process_expr mapper expr =
+  if (Util.attributes_candidate expr.pexp_attributes)
+  then expr
+  else match expr.pexp_desc with
+    | _ -> default_mapper.expr mapper expr
+
+(* Mapper for structure *)
+let process_structure = default_mapper.structure
 
 (* Mapper for all transformation *)
 let general_mapper = Ast_mapper.{
     default_mapper with
-    structure = structure
-  ; structure_item = structure_item
+    structure = process_structure
+  ; structure_item = process_structure_item
+  ; expr = process_expr
   }
 
 let append_module_code _ = function
