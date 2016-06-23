@@ -29,8 +29,11 @@ module Ppx   = DbgPpx
 module Util  = DbgUtil
 
 (* Perform attributes substitution *)
-let perform_attributes attr expr =
-  (attr, expr)
+let perform_attributes attributes expr =
+  let rec aux (attr, e) = function
+    | [] -> (List.rev attr, e)
+    | x :: xs -> aux (x :: attr, e) xs
+  in aux ([], expr) attributes
 
 (* Mapper for structure_item *)
 let process_structure_item mapper item =
@@ -49,7 +52,7 @@ let perform_expr expr =
 
 let process_expr mapper expr =
   if (Util.attributes_candidate expr.pexp_attributes)
-  then expr
+  then perform_expr expr
   else match expr.pexp_desc with
     | _ -> default_mapper.expr mapper expr
 
