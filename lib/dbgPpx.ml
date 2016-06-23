@@ -70,8 +70,7 @@ let fun_of pat =
 module Fabric =
 struct
 
-  let code_array =
-    "debugger_module_code"
+  let code_array = DbgConfig.code_array
 
   let identity =
     let open Exp in

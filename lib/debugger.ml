@@ -23,6 +23,7 @@ open Ast_mapper
 open Ast_helper
 open Asttypes
 
+module Config = DbgConfig
 module Color = DbgColor
 module Ppx   = DbgPpx
 module Util  = DbgUtil
