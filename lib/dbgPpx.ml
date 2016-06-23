@@ -142,7 +142,7 @@ struct
   let reveal_line_lambda =
     let open Exp in
     let open DbgColor in
-    let li = scope [blue ~bg:true (); yellow ()] " %- 5d  " in
+    let li = scope [blue ~bg:true (); green ()] " %- 5d  " in
     let ll = scope [yellow ()] " %s\n" in
     let ff = li ^ ll in
     let app = apply (exp_ident "+") [
