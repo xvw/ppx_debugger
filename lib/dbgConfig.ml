@@ -17,19 +17,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
 *)
-open Parsetree
-open Asttypes
 
 let code_array = "debugger_module_code"
 
 let keywords = [
   "debugger.reveal"
 ]
-
-let expr_candidate e =
-  List.exists
-    (fun x ->
-       let attr = (fst x).txt in
-       List.mem attr keywords
-    )
-    e.pexp_attributes

@@ -18,6 +18,10 @@
  * THE SOFTWARE.
 *)
 
+open Parsetree
+open Asttypes
+
+
 (* Open file as a list of string *)
 let open_file filename =
   let channel = open_in filename in
@@ -38,3 +42,11 @@ let to_date tm =
     date.tm_hour
     date.tm_min
     date.tm_sec
+
+let expr_candidate e =
+  List.exists
+    (fun x ->
+       let attr = (fst x).txt in
+       List.mem attr DbgConfig.keywords
+    )
+    e.pexp_attributes
