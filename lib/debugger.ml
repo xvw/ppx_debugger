@@ -28,6 +28,8 @@ module Color = DbgColor
 module Ppx   = DbgPpx
 module Util  = DbgUtil
 
+open Util.Infix
+
 (* Perform attributes substitution *)
 let perform_attributes attributes expr =
   let open Ppx.Fabric in
@@ -43,11 +45,7 @@ let perform_attributes attributes expr =
 let process_structure_item mapper item =
   match item.pstr_desc with
   | Pstr_eval (e, attributes) ->
-    if Util.attributes_candidate attributes
-    then
-      let at, ex = perform_attributes attributes e in
-      Str.eval ~attrs:at ex
-    else item
+    Str.eval ~attrs:attributes (mapper.expr mapper e)
   | Pstr_attribute ({txt="debugger.reveal"; loc = location}, PStr []) ->
     Str.eval (Ppx.Fabric.reveal_loc location)
   | _ -> default_mapper.structure_item mapper item
@@ -76,13 +74,27 @@ let process_expr mapper expr =
   if Util.attributes_candidate expr.pexp_attributes
   then perform_expr expr
   else match expr.pexp_desc with
+    | Pexp_let (rf, vb, subexp) ->
+      Exp.let_
+        rf
+        (List.map (mapper.value_binding mapper) vb)
+        (mapper.expr mapper subexp)
+    | Pexp_fun (a, e, pat, subexp) ->
+      Exp.fun_ a e pat (mapper.expr mapper subexp)
+    | Pexp_match (e, c) ->
+      Exp.match_ (mapper.expr mapper e) c
+    | Pexp_try (e, c) -> Exp.try_ (mapper.expr mapper e) c
+    | Pexp_tuple xs -> Exp.tuple (List.map (fun x -> mapper.expr mapper x) xs)
+    | Pexp_ifthenelse (i, th, e) ->
+      Exp.ifthenelse i (mapper.expr mapper th) (e >|= mapper.expr mapper)
+    | Pexp_for (p, e1, e2, dirf, e3) ->
+      Exp.for_ p e1 e2 dirf (mapper.expr mapper e3)
+    | Pexp_while (e1, e2) -> Exp.while_ e1 (mapper.expr mapper e2)
+    | Pexp_apply (e, ls) ->
+      Exp.apply
+        (mapper.expr mapper e)
+        (List.map (fun (a, ex) -> a, (mapper.expr mapper ex)) ls)
     | _ -> default_mapper.expr mapper expr
-
-(* Remap values binding *)
-let process_value_binding mapper vb =
-  if Util.attributes_candidate vb.pvb_attributes
-  then perform_value_binding mapper vb
-  else default_mapper.value_binding mapper vb
 
 (* Mapper for structure *)
 let process_structure = default_mapper.structure
@@ -93,7 +105,7 @@ let general_mapper = Ast_mapper.{
     structure = process_structure
   ; structure_item = process_structure_item
   ; expr = process_expr
-  ; value_binding = process_value_binding
+  ; value_binding = perform_value_binding
   }
 
 let append_module_code _ = function

@@ -22,6 +22,16 @@ open Parsetree
 open Asttypes
 
 
+module Infix =
+struct
+  let (>|=) o f =
+    match o with
+    | Some x -> Some (f x)
+    | None -> None
+
+end
+
+
 (* Open file as a list of string *)
 let open_file filename =
   let channel = open_in filename in
