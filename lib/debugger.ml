@@ -38,6 +38,9 @@ let perform_attributes attributes expr =
     | ({txt = "debugger.reveal"; loc=loc}, PStr []) :: xs ->
       let point = let_in (reveal_loc expr.pexp_loc) e in
       aux (attr, point) xs
+    | ({txt = "debugger.log"; loc=loc}, payload) :: xs ->
+    let point = let_in (logf expr.pexp_loc payload) e in
+    aux (attr, point) xs
     | x :: xs -> aux (x :: attr, e) xs
   in aux ([], expr) attributes
 
@@ -48,10 +51,12 @@ let process_structure_item mapper item =
     Str.eval ~attrs:attributes (mapper.expr mapper e)
   | Pstr_attribute ({txt="debugger.reveal"; loc = location}, PStr []) ->
     Str.eval (Ppx.Fabric.reveal_loc location)
+  | Pstr_attribute ({txt="debugger.log"; loc = location}, payload) ->
+    Str.eval (Ppx.Fabric.logf location payload)
   | _ -> default_mapper.structure_item mapper item
 
 (* Mapper for expression *)
-let perform_expr expr =
+let perform_expr mapper expr =
   let new_attributes, new_expression =
     perform_attributes
       expr.pexp_attributes
@@ -72,7 +77,7 @@ let perform_value_binding mapper vb =
 (* Remap expression *)
 let process_expr mapper expr =
   if Util.attributes_candidate expr.pexp_attributes
-  then perform_expr expr
+  then perform_expr mapper expr
   else match expr.pexp_desc with
     | Pexp_let (rf, vb, subexp) ->
       Exp.let_
@@ -89,21 +94,21 @@ let process_expr mapper expr =
       Exp.ifthenelse i (mapper.expr mapper th) (e >|= mapper.expr mapper)
     | Pexp_for (p, e1, e2, dirf, e3) ->
       Exp.for_ p e1 e2 dirf (mapper.expr mapper e3)
-    | Pexp_while (e1, e2) -> Exp.while_ e1 (mapper.expr mapper e2)
+    | Pexp_while (e1, e2) ->
+      Exp.while_
+        (mapper.expr mapper e1)
+        (mapper.expr mapper e2)
     | Pexp_apply (e, ls) ->
       Exp.apply
         (mapper.expr mapper e)
         (List.map (fun (a, ex) -> a, (mapper.expr mapper ex)) ls)
     | _ -> default_mapper.expr mapper expr
 
-(* Mapper for structure *)
-let process_structure = default_mapper.structure
 
 (* Mapper for all transformation *)
 let general_mapper = Ast_mapper.{
     default_mapper with
-    structure = process_structure
-  ; structure_item = process_structure_item
+    structure_item = process_structure_item
   ; expr = process_expr
   ; value_binding = perform_value_binding
   }

@@ -167,6 +167,22 @@ struct
         end
       end
 
+  let default_log_colors = [DbgColor.yellow ~bg:true (); DbgColor.blue ()]
+  let raw_format ?(colors=default_log_colors) message location s =
+    let open Location in
+    DbgColor.scope
+      colors
+      (sprintf
+         "  %s [%s:%d]  "
+         message
+         location.loc_start.Lexing.pos_fname
+         location.loc_start.Lexing.pos_lnum
+      ) ^ " " ^ s
+
+  let format message location s =
+    raw_format message location s
+    |> string
+
   let reveal_loc loc =
     let open Location in
     let start  = loc.loc_start.Lexing.pos_lnum - 1 in
@@ -179,36 +195,29 @@ struct
         arr_sub
     in
     sequences_of [
-      print_endline
-        (DbgColor.(scope [blue ~bg:true (); white ()] "  Reveal source code  "))
+      print_endline (
+        raw_format
+          ~colors:[DbgColor.blue ~bg:true (); DbgColor.white ()]
+          "REVEAL" loc ""
+      )
     ; arr_itr
     ; press_enter ()
     ]
 
   let logf location payload =
-    let open Location in
     let pf = pprintf "printf" in
     match payload with
     | PStr [str] -> begin
         match str.pstr_desc with
         | Pstr_eval (expr, _) -> begin
-            let format location s =
-              DbgColor.scope
-                [DbgColor.yellow ~bg:true (); DbgColor.blue ()]
-                (sprintf
-                   "  LOG [%s:%d]  "
-                   location.loc_start.Lexing.pos_fname
-                   location.loc_start.Lexing.pos_lnum
-                ) ^ s
-              |> string
-            in
+            let format = format "LOG" in
             match  expr.pexp_desc with
             | Pexp_constant (Pconst_string (s, _)) ->
-              sequences_of [pf (format location s) []; print_endline ""]
+              sequences_of [pf (format location s) []; print_endline "\n"]
             | Pexp_tuple (e :: arg) -> begin
                 match e.pexp_desc with
                 | Pexp_constant (Pconst_string (s, _)) ->
-                  sequences_of [pf (format location s) arg; print_endline ""]
+                  sequences_of [pf (format location s) arg; print_endline "\n"]
                 | _ -> raise_error "Malformed log"
               end
             | _ -> raise_error "Malformed log"
