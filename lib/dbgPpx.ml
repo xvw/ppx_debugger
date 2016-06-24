@@ -72,6 +72,12 @@ struct
 
   let code_array = DbgConfig.code_array
 
+  let pprintf f format params =
+    let parameters_expanded = List.map (fun x -> Nolabel, x) params in
+    Exp.apply
+      (import_function "Printf" f)
+      ((Nolabel, format) :: parameters_expanded)
+
   let identity =
     let open Exp in
     fun_ Nolabel None (Pat.var (loc "x")) (exp_ident "x")
@@ -180,14 +186,31 @@ struct
     ]
 
   let logf location payload =
-    let pf = import_function "Printf" "printf" in
+    let open Location in
+    let pf = pprintf "printf" in
     match payload with
     | PStr [str] -> begin
         match str.pstr_desc with
         | Pstr_eval (expr, _) -> begin
+            let format location s =
+              DbgColor.scope
+                [DbgColor.yellow ~bg:true (); DbgColor.blue ()]
+                (sprintf
+                   "  LOG [%s:%d]  "
+                   location.loc_start.Lexing.pos_fname
+                   location.loc_start.Lexing.pos_lnum
+                ) ^ s
+              |> string
+            in
             match  expr.pexp_desc with
-            | Pexp_constant (Pconst_string (s, _)) -> ()
-            | Pexp_tuple (e :: arg) ->  ()
+            | Pexp_constant (Pconst_string (s, _)) ->
+              sequences_of [pf (format location s) []; print_endline ""]
+            | Pexp_tuple (e :: arg) -> begin
+                match e.pexp_desc with
+                | Pexp_constant (Pconst_string (s, _)) ->
+                  sequences_of [pf (format location s) arg; print_endline ""]
+                | _ -> raise_error "Malformed log"
+              end
             | _ -> raise_error "Malformed log"
           end
         | _ -> raise_error "Malformed log"
