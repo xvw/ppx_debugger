@@ -1,10 +1,14 @@
 
 let x = "hello" [@@debugger.reveal]
 
+[@@@debugger.log
+  "Value of x:%d %s",
+  x,
+  "toto"
+]
+
 let test x =
-  let succx = succ x [@@debugger.reveal] in
-  let succxx = succ succx [@debugger.reveal] in
-  succxx
+  x + 234
 [@@debugger.reveal]
 
 

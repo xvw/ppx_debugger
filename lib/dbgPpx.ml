@@ -179,6 +179,21 @@ struct
     ; press_enter ()
     ]
 
+  let logf location payload =
+    let pf = import_function "Printf" "printf" in
+    match payload with
+    | PStr [str] -> begin
+        match str.pstr_desc with
+        | Pstr_eval (expr, _) -> begin
+            match  expr.pexp_desc with
+            | Pexp_constant (Pconst_string (s, _)) -> ()
+            | Pexp_tuple (e :: arg) ->  ()
+            | _ -> raise_error "Malformed log"
+          end
+        | _ -> raise_error "Malformed log"
+      end
+    | _ -> raise_error "Malformed log"
+
 
   let header txt file =
     let open DbgColor in

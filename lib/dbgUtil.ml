@@ -43,7 +43,7 @@ let open_file filename =
 (* Convert timestamp to d-m-Y H:i*)
 let to_date tm =
   let open Unix in
-  let date = gmtime tm in
+  let date = localtime tm in
   Printf.sprintf
     "%d-%d-%d %d:%d:%d"
     date.tm_mday
